@@ -8,6 +8,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/google/go-github/github"
+	"github.com/kellydunn/golang-geo"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -102,6 +103,27 @@ func main() {
 		"Search ID")
 
 	mainCmd.AddCommand(resumeCmd)
+
+	// Filter
+	var mapquestApiKey string
+	var lat, lng, radius float64
+	filterCmd := &cobra.Command{
+		Use:   "filter --mapquest_api_key=KEY --lat=LAT --lng=LNG --radius=RADIUS",
+		Short: "Filter to good-looking prospects",
+		Run: func(cmd *cobra.Command, args []string) {
+			Filter(store, mapquestApiKey, geo.NewPoint(lat, lng), radius)
+		},
+	}
+
+	filterCmd.PersistentFlags().StringVarP(&mapquestApiKey, "mapquest_api_key", "", "",
+		"MapQuest API Key (for geolocation lookups).")
+	filterCmd.PersistentFlags().Float64VarP(&lat, "lat", "", 0.0,
+		"Latitude of center.")
+	filterCmd.PersistentFlags().Float64VarP(&lng, "lng", "", 0.0,
+		"Longitude of center.")
+	filterCmd.PersistentFlags().Float64VarP(&radius, "radius", "", 100.0,
+		"Distance from center (km)")
+	mainCmd.AddCommand(filterCmd)
 
 	// Execute
 	_ = mainCmd.Execute()
