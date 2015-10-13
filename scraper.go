@@ -26,6 +26,7 @@ func (s *Scraper) ProspectFromRepository(repo github.Repository) (*Prospect, err
 		return nil, err
 	}
 	if u.Email != nil {
+		p.Source = "profile"
 		p.Email = *u.Email
 		if u.Name != nil {
 			p.Name = *u.Name
@@ -48,6 +49,7 @@ func (s *Scraper) ProspectFromRepository(repo github.Repository) (*Prospect, err
 		}
 		push := ev.Payload().(*github.PushEvent)
 		for _, commit := range push.Commits {
+			p.Source = "commit"
 			author := commit.Author
 			if author.Email != nil {
 				p.Email = *author.Email

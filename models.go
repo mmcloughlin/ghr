@@ -19,6 +19,7 @@ type Prospect struct {
 	Name     string
 	Email    string
 	Location string
+	Source   string
 }
 
 type Store struct {
