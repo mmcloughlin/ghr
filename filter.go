@@ -1,7 +1,8 @@
 package main
 
 import (
-	"fmt"
+	"encoding/csv"
+	"os"
 
 	"github.com/kellydunn/golang-geo"
 )
@@ -11,7 +12,8 @@ func Filter(store *Store, mapquestApiKey string, origin *geo.Point, r float64) {
 	prospects := []Prospect{}
 	store.DB.Where("LENGTH(location) > 0").Find(&prospects)
 
-	//
+	// Geocode and output
+	w := csv.NewWriter(os.Stdout)
 	geo.SetMapquestAPIKey(mapquestApiKey)
 	geocoder := &geo.MapQuestGeocoder{}
 	for _, p := range prospects {
@@ -21,7 +23,17 @@ func Filter(store *Store, mapquestApiKey string, origin *geo.Point, r float64) {
 		}
 		d := origin.GreatCircleDistance(point)
 		if d < r {
-			fmt.Println(p)
+			err := w.Write([]string{
+				p.Name,
+				p.Email,
+				p.Location,
+				p.User,
+				p.Repo,
+			})
+			if err != nil {
+				panic(err)
+			}
+			w.Flush()
 		}
 	}
 }
