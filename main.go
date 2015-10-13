@@ -61,7 +61,13 @@ func main() {
 			client := BuildHTTPClient(proxy, token)
 			c := github.NewClient(client)
 			c.UserAgent = userAgent
-			Query(c, store, searchQuery)
+
+			s, err := store.NewSearch(searchQuery)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			Query(c, store, s)
 		},
 	}
 
@@ -70,6 +76,32 @@ func main() {
 		"Search keywords and qualifiers (https://developer.github.com/v3/search/#search-repositories)")
 
 	mainCmd.AddCommand(searchCmd)
+
+	// Resume a search
+	var searchID uint
+	resumeCmd := &cobra.Command{
+		Use:   "resume --id=ID --proxy=PROXY --token=TOKEN --useragent=AGENT",
+		Short: "Resume another query",
+		Run: func(cmd *cobra.Command, args []string) {
+			client := BuildHTTPClient(proxy, token)
+			c := github.NewClient(client)
+			c.UserAgent = userAgent
+
+			s := &Search{}
+			q := store.DB.First(s, searchID)
+			if q.Error != nil {
+				log.Fatal(q.Error)
+			}
+
+			Query(c, store, s)
+		},
+	}
+
+	resumeCmd.PersistentFlags().AddFlagSet(searchFlags)
+	resumeCmd.PersistentFlags().UintVarP(&searchID, "id", "", 0,
+		"Search ID")
+
+	mainCmd.AddCommand(resumeCmd)
 
 	// Execute
 	_ = mainCmd.Execute()
@@ -108,20 +140,14 @@ func BuildHTTPClient(proxy, token string) *http.Client {
 	}
 }
 
-func Query(c *github.Client, store *Store, q string) {
+func Query(c *github.Client, store *Store, s *Search) {
 	// scraper
 	scraper := &Scraper{
 		Client: c,
 		Store:  store,
 	}
 
-	// Start scrape
-	s, err := store.NewSearch(q)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = scraper.Scrape(s)
+	err := scraper.Scrape(s)
 	if err != nil {
 		log.Fatal(err)
 	}
