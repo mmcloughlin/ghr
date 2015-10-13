@@ -31,6 +31,7 @@ func main() {
 
 	// github client
 	c := github.NewClient(client)
+	c.UserAgent = "github.com/mmcloughlin/ghr"
 
 	// scraper
 	scraper := &Scraper{
