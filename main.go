@@ -23,7 +23,11 @@ func main() {
 	}
 
 	// http client
-	client := &http.Client{Transport: proxyTransport}
+	client := &http.Client{
+		Transport: &RateLimitedTransport{
+			Base: proxyTransport,
+		},
+	}
 
 	// github client
 	c := github.NewClient(client)
