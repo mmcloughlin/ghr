@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"net/url"
 
+	"golang.org/x/oauth2"
+
 	"github.com/google/go-github/github"
 	"github.com/spf13/cobra"
 )
@@ -40,17 +42,26 @@ func main() {
 	mainCmd.AddCommand(initCmd)
 
 	// Start a query
-	var searchQuery string
+	var searchQuery, proxy, token, userAgent string
 	searchCmd := &cobra.Command{
-		Use:   "search --query=QUERY",
+		Use:   "search --query=QUERY --proxy=PROXY --token=TOKEN --useragent=AGENT",
 		Short: "Start a new query",
 		Run: func(cmd *cobra.Command, args []string) {
-			Query(store, searchQuery)
+			client := BuildHTTPClient(proxy, token)
+			c := github.NewClient(client)
+			c.UserAgent = userAgent
+			Query(c, store, searchQuery)
 		},
 	}
 
 	searchCmd.PersistentFlags().StringVarP(&searchQuery, "query", "", "",
 		"Search keywords and qualifiers (https://developer.github.com/v3/search/#search-repositories)")
+	searchCmd.PersistentFlags().StringVarP(&proxy, "proxy", "", "",
+		"HTTP proxy")
+	searchCmd.PersistentFlags().StringVarP(&token, "token", "", "",
+		"API token")
+	searchCmd.PersistentFlags().StringVarP(&userAgent, "useragent", "", "github.com/mmcloughlin/ghr",
+		"User agent. Please use your github username.")
 
 	mainCmd.AddCommand(searchCmd)
 
@@ -58,24 +69,40 @@ func main() {
 	_ = mainCmd.Execute()
 }
 
-func Query(store *Store, q string) {
-	// proxy layer
-	u, _ := url.Parse("http://localhost:11112")
-	proxyTransport := &http.Transport{
-		Proxy: http.ProxyURL(u),
+func BuildHTTPClient(proxy, token string) *http.Client {
+	var base http.RoundTripper
+	base = http.DefaultTransport
+
+	// Proxy layer
+	if len(proxy) > 0 {
+		u, _ := url.Parse(proxy)
+		base = &http.Transport{
+			Proxy: http.ProxyURL(u),
+		}
 	}
 
-	// http client
-	client := &http.Client{
-		Transport: &RateLimitedTransport{
-			Base: proxyTransport,
-		},
+	// Authentication layer
+	if len(token) > 0 {
+		ts := oauth2.StaticTokenSource(
+			&oauth2.Token{AccessToken: token},
+		)
+		base = &oauth2.Transport{
+			Source: ts,
+			Base:   base,
+		}
 	}
 
-	// github client
-	c := github.NewClient(client)
-	c.UserAgent = "github.com/mmcloughlin/ghr"
+	// Rate limiting
+	transport := &RateLimitedTransport{
+		Base: base,
+	}
 
+	return &http.Client{
+		Transport: transport,
+	}
+}
+
+func Query(c *github.Client, store *Store, q string) {
 	// scraper
 	scraper := &Scraper{
 		Client: c,
