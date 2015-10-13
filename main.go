@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/go-github/github"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 func main() {
@@ -41,8 +42,18 @@ func main() {
 
 	mainCmd.AddCommand(initCmd)
 
-	// Start a query
-	var searchQuery, proxy, token, userAgent string
+	// Common network options
+	var proxy, token, userAgent string
+	searchFlags := pflag.NewFlagSet("connection", pflag.ExitOnError)
+	searchFlags.StringVarP(&proxy, "proxy", "", "",
+		"HTTP proxy")
+	searchFlags.StringVarP(&token, "token", "", "",
+		"API token")
+	searchFlags.StringVarP(&userAgent, "useragent", "", "github.com/mmcloughlin/ghr",
+		"User agent. Please use your github username.")
+
+	// Start a new search
+	var searchQuery string
 	searchCmd := &cobra.Command{
 		Use:   "search --query=QUERY --proxy=PROXY --token=TOKEN --useragent=AGENT",
 		Short: "Start a new query",
@@ -54,14 +65,9 @@ func main() {
 		},
 	}
 
+	searchCmd.PersistentFlags().AddFlagSet(searchFlags)
 	searchCmd.PersistentFlags().StringVarP(&searchQuery, "query", "", "",
 		"Search keywords and qualifiers (https://developer.github.com/v3/search/#search-repositories)")
-	searchCmd.PersistentFlags().StringVarP(&proxy, "proxy", "", "",
-		"HTTP proxy")
-	searchCmd.PersistentFlags().StringVarP(&token, "token", "", "",
-		"API token")
-	searchCmd.PersistentFlags().StringVarP(&userAgent, "useragent", "", "github.com/mmcloughlin/ghr",
-		"User agent. Please use your github username.")
 
 	mainCmd.AddCommand(searchCmd)
 
