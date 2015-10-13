@@ -13,13 +13,26 @@ type Search struct {
 }
 
 type Prospect struct {
-	ID       uint
-	User     string
-	Repo     string
-	Name     string
-	Email    string
+	ID uint
+
+	// User login handle
+	User string
+
+	// Repo is the full name of the repository
+	Repo string
+
+	// Name of the user.
+	Name string
+
+	// Email of the user.
+	Email string
+
+	// Location of the user.
 	Location string
-	Source   string
+
+	// Source of the prospect. This is whether it came from their profile page,
+	// or from scraping commit logs.
+	Source string
 }
 
 type Store struct {
