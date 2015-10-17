@@ -21,7 +21,7 @@ func main() {
 		Use:   "ghr",
 		Short: "Scrape GitHub for tech talent",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			s, err := NewStore("./store.db")
+			s, err := NewStore(storePath)
 			if err != nil {
 				log.Fatal(err)
 			}
